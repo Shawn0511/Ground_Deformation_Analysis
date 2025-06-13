@@ -1,0 +1,191 @@
+---
+title: "HP_spatial_temporal_analysis"
+output: html_document
+date: "2025-06-13"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r load library, echo=FALSE}
+library(readr)
+library(here)
+library(tidyverse)
+library(ggthemes) 
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(tidyr)
+library(sp)
+library(gstat)
+library(RColorBrewer)
+```
+
+
+
+
+```{r Import data and wrangling, echo=FALSE}
+
+# -------- 1. Load & clean ----------------------------------------------
+df <- read_csv(
+  here("data", "HP_WB_settlement.csv"),
+  col_types = cols(
+    .default      = col_guess(),
+    Sensor_Depth  = col_number(),     # force numeric
+    Tunnel_Depth  = col_number()
+  )
+)
+
+# Inspect depth encoding
+cat("Unique Sensor_Depth values:\n")
+print(table(df$Sensor_Depth, useNA = "ifany"))
+
+# Select surface rows: depth ≤ 0.5 m or NA (= coded surface)
+df_surface <- df %>%
+  filter(is.na(Sensor_Depth) | Sensor_Depth <= 0.5) %>%
+  filter(!is.na(X_long) & !is.na(Y_trans) & !is.na(Z_settlement))
+
+stopifnot(nrow(df_surface) > 5)   # halt if still empty
+cat("Rows kept for surface modelling:", nrow(df_surface), "\n")
+
+# -------- 2. Modified-Gaussian trend fit -------------------------------
+start_S_max  <- -max(abs(df_surface$Z_settlement))
+K_value      <- 0.5
+start_i      <- K_value * mean(df_surface$Tunnel_Depth, na.rm = TRUE)
+start_x_mean <- df_surface$X_long[ which.min(df_surface$Z_settlement) ]
+start_x_sd   <- sd(df_surface$X_long) / 3
+
+trend_form <- Z_settlement ~ S_max *
+                             exp(-(Y_trans)^2 / (2 * i^2)) *
+                             pnorm(X_long, mean = x_mean, sd = x_sd)
+
+nlin_fit <- try(
+  nlsLM(trend_form, data = df_surface,
+        start = list(S_max = start_S_max,
+                     i      = start_i,
+                     x_mean = start_x_mean,
+                     x_sd   = start_x_sd),
+        control = nls.lm.control(maxiter = 200)),
+  silent = TRUE)
+
+if (inherits(nlin_fit, "try-error")) {
+  message("⚠️  Non-linear fit failed — switching to quadratic trend.")
+  lin_fit <- lm(Z_settlement ~ poly(X_long, 2) + poly(Y_trans, 2),
+                data = df_surface)
+  df_surface$Residuals <- residuals(lin_fit)
+  trend_fun <- function(xx, yy)
+    predict(lin_fit, newdata = data.frame(X_long = xx, Y_trans = yy))
+} else {
+  df_surface$Residuals <- residuals(nlin_fit)
+  trend_fun <- function(xx, yy)
+    predict(nlin_fit, newdata = data.frame(X_long = xx, Y_trans = yy))
+}
+
+```
+
+
+
+
+```{r Import data and wrangling, echo=FALSE}
+# ---------- 1. Load & surface subset ---------------------------
+df <- read_csv(
+  here("data", "HP_WB_settlement.csv"),
+  col_types = cols(
+    .default     = col_guess(),
+    Sensor_Depth = col_number(),
+    Tunnel_Depth = col_number()
+  )
+)
+
+df_surface <- df %>%
+  filter(is.na(Sensor_Depth) | Sensor_Depth <= 0.5) %>%            # surface
+  filter(!is.na(X_long) & !is.na(Y_trans) & !is.na(Z_settlement))  # no NA coords
+
+stopifnot(nrow(df_surface) > 5)
+
+# ---------- 2. Trend fit (modified Gaussian → fallback) --------
+start_S_max  <- -max(abs(df_surface$Z_settlement))
+start_i      <- 0.5 * mean(df_surface$Tunnel_Depth, na.rm = TRUE)
+start_x_mean <- df_surface$X_long[ which.min(df_surface$Z_settlement) ]
+start_x_sd   <- sd(df_surface$X_long) / 3
+
+trend_form <- Z_settlement ~ S_max *
+                             exp(-(Y_trans)^2 / (2 * i^2)) *
+                             pnorm(X_long, mean = x_mean, sd = x_sd)
+
+nlin_fit <- try(
+  nlsLM(trend_form, data = df_surface,
+        start = list(S_max = start_S_max,
+                     i      = start_i,
+                     x_mean = start_x_mean,
+                     x_sd   = start_x_sd)),
+  silent = TRUE)
+
+if (inherits(nlin_fit, "try-error")) {
+  lin_fit <- lm(Z_settlement ~ poly(X_long, 2) + poly(Y_trans, 2),
+                data = df_surface)
+  df_surface$Residuals <- residuals(lin_fit)
+  trend_fun <- function(xx, yy)
+      predict(lin_fit, newdata = data.frame(X_long = xx, Y_trans = yy))
+} else {
+  df_surface$Residuals <- residuals(nlin_fit)
+  trend_fun <- function(xx, yy)
+      predict(nlin_fit, newdata = data.frame(X_long = xx, Y_trans = yy))
+}
+
+# ---------- 3. Spatial object  ---------------------------------
+coords_mat   <- as.matrix(df_surface[, c("X_long", "Y_trans")])
+data_df      <- as.data.frame(df_surface)          # <- ①  drop tibble class
+sp_surface   <- SpatialPointsDataFrame(coords_mat, data_df,
+                                       proj4string = CRS(NA_character_))
+
+# quick sanity check
+cat("\nData slot structure just before kriging:\n")
+str(sp_surface@data)
+
+# ---------- 4. Variogram ---------------------------------------
+v_emp <- variogram(Residuals ~ 1, sp_surface, cutoff = 400, width = 20)
+v_mod <- fit.variogram(v_emp,
+                       vgm(psill  = var(df_surface$Residuals),
+                           model  = "Mat",
+                           range  = 100,
+                           nugget = 0.1 * var(df_surface$Residuals),
+                           kappa  = 0.5))
+
+# ---------- 5. Prediction grid & kriging -----------------------
+grid_obj <- spsample(sp_surface, type = "regular", n = 10000)
+gridded(grid_obj) <- TRUE
+
+# ② rename coords for trend function
+grid_df <- as.data.frame(grid_obj)
+names(grid_df)[names(grid_df) == "x1"] <- "X_long"
+names(grid_df)[names(grid_df) == "x2"] <- "Y_trans"
+
+# ordinary kriging of residuals
+kr_res <- krige(Residuals ~ 1, sp_surface, grid_obj, model = v_mod)
+
+# ---------- 6. Add trend & variance ----------------------------
+kr_res$final_pred <- kr_res$var1.pred +
+                     trend_fun(grid_df$X_long, grid_df$Y_trans)
+kr_res$final_var  <- kr_res$var1.var
+
+# ---------- 7. Maps --------------------------------------------
+png("final_prediction_map.png", 600, 600)
+spplot(kr_res, "final_pred",
+       main = "Predicted Settlement (mm)",
+       col.regions =
+         colorRampPalette(rev(brewer.pal(9, "YlOrRd")))(100))
+dev.off()
+
+png("final_variance_map.png", 600, 600)
+spplot(kr_res, "final_var",
+       main = "Prediction Variance (mm²)",
+       col.regions =
+         colorRampPalette(brewer.pal(9, "YlGnBu"))(100))
+dev.off()
+
+cat("\n✅  Script finished – check PNG outputs.\n")
+```

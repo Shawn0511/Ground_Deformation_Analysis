@@ -1,2 +1,3 @@
 # Ignore the whole DTG_assessment folder under data
 data/
+.Rproj.user
