@@ -1,0 +1,23 @@
+---
+title: "HP Spatial Temporal Analysis"
+output: html_document
+date: "2025-06-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+```{r load library, echo=FALSE}
+library(readr)
+library(here)
+library(tidyverse)
+library(ggthemes) 
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(tidyr)
+library(sp)
+library(gstat)
+```
