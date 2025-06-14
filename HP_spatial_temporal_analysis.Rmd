@@ -72,7 +72,7 @@ nlin_fit <- try(
   silent = TRUE)
 
 if (inherits(nlin_fit, "try-error")) {
-  message("⚠️  Non-linear fit failed — switching to quadratic trend.")
+  message("  Non-linear fit failed — switching to quadratic trend.")
   lin_fit <- lm(Z_settlement ~ poly(X_long, 2) + poly(Y_trans, 2),
                 data = df_surface)
   df_surface$Residuals <- residuals(lin_fit)
@@ -187,5 +187,4 @@ spplot(kr_res, "final_var",
          colorRampPalette(brewer.pal(9, "YlGnBu"))(100))
 dev.off()
 
-cat("\n✅  Script finished – check PNG outputs.\n")
 ```
