@@ -1,7 +1,7 @@
-# 	Statistical Modelling of Tunnel-Induced Ground Deformation
+# 	Statistical Modelling of Tunnelling-induced Ground Deformation
 This project investigates how bored tunnelling alters ground-surface and sub-surface levels in different ground conditions(London Clay, Sand etc). The repository combines:
 
-* classical **empirical settlement models** (Inverted Gaussian & CDF profiles),
+* **classical empirical settlement models** (Inverted Gaussian & CDF profiles),
 * **Bayesian regression/GLM** to quantify parameter uncertainty,
 * **time-series forecasting** for instrument-level trends, and
 * **geostatistical kriging** for 2-D settlement mapping.
@@ -14,7 +14,7 @@ The toolkit is demonstrated on two landmark London projects:
 
 ---
 
-## 📌 Objectives
+## Objectives
 
 | # | Target | Output |
 |---|--------|--------|
@@ -30,41 +30,49 @@ The toolkit is demonstrated on two landmark London projects:
 
 ### 1 Empirical Baseline
 
-| Aspect | Model | Key Equations |
-|--------|-------|---------------|
-| **Transverse profile** | Gaussian trough | \(S(y)=S_{\max}\exp[-y^{2}/(2i^{2})]\) |
-| **Longitudinal profile** | Gaussian CDF (sigmoid) | \(S(x)=S_{\max}\,\Phi((x-x_{0})/w)\) |
-| **Width parameter** | \(i = K\,z_{0}\) with \(K\approx0.5\) for London Clay  | |
+| Aspect | Model | Key Equation |
+|--------|-------|--------------|
+| **Transverse profile** | Gaussian trough | $S(y)=S_{\max}\,\exp\!\bigl(-y^{2}/(2i^{2})\bigr)$ |
+| **Longitudinal profile** | Gaussian CDF (sigmoid) | $S(x)=S_{\max}\,\Phi\!\bigl((x-x_{0})/w\bigr)$ |
+| **Width parameter** | $i = K\,z_{0}$ with $K\approx0.5$ for London Clay |
 
 
 ### 2 Bayesian Modelling
 
 #### 2.1 Hierarchical Non-Linear Model  
 
-\[
-S_{jk}(y) \sim \mathcal{N}\!\Bigl(S_{\max,k}\exp[-y^{2}/(2i_{k}^{2})],\ \sigma^{2}\Bigr)
-\]
+```math
+S_{jk}(y) \sim \mathcal N\!\Bigl(
+  S_{\max,k}\,\exp\!\bigl[-y^{2}/\bigl(2\,i_{k}^{2}\bigr)\bigr],
+  \;\sigma^{2}
+\Bigr)
+```
 
 | Parameter | Prior (example) | Notes |
 |-----------|-----------------|-------|
-| \(S_{\max,k}\) | \(\mathcal{N}(20\text{ mm},5^{2})\) | Tuned per site |
-| \(i_{k}\)      | \(\mathcal{N}(0.5z_{0,k},(0.1z_{0,k})^{2})\) | Width factor |
-| \(\sigma\)     | Half-Normal(5) | Residual scatter |
+| $S_{\max,k}$ | $\mathcal N(20\text{ mm},\,5^{2})$ | Tuned per site |
+| $i_{k}$       | $\mathcal N(0.5\,z_{0,k},\,0.1^{2}z_{0,k}^{2})$ | Trough width |
+| $\sigma$      | $\text{HalfNormal}(5)$ | Residual scatter |
 
 #### 2.2 Bayesian GLM Layer
 
-\[
-\log S_{\max} = \beta_{0}+\beta_{1}\log V_{L}+\beta_{2}\,\frac{C}{D}+\beta_{3}\,\text{GWT}+\ldots
-\]
+```math
+\log S_{\max} =
+  \beta_{0}
+  + \beta_{1}\,\log V_{L}
+  + \beta_{2}\,\frac{C}{D}
+  + \beta_{3}\,\text{GWT}
+  + \ldots
+```
 
-*Covariates*  
+**Covariate families**
 
 | Group | Example variables |
 |-------|-------------------|
-| Geometry | Depth \(z_{0}\), Cover/Diameter \(C/D\), Diameter \(D\) |
-| Construction | Volume-loss \(V_{L}\), face pressure, advance rate |
-| Geotechnical | Soil class, \(s_{u}\), \(E\), permeability \(k\) |
-| Hydro | Ground-water table (GWT), Δpore pressure |
+| Geometry | Depth $z_{0}$, Cover/Diameter $C/D$, Diameter $D$ |
+| Construction | Volume-loss $V_{L}$, face pressure, advance rate |
+| Geotechnical | Soil class, $s_{u}$, $E$, permeability $k$ |
+| Hydro | Ground-water table (GWT), Δ pore pressure |
 
 
 ### 3 Time-Series Analysis
@@ -88,26 +96,27 @@ S_{jk}(y) \sim \mathcal{N}\!\Bigl(S_{\max,k}\exp[-y^{2}/(2i_{k}^{2})],\ \sigma^{
 
 ##  Repository Layout
 
+```text
 ├── data/
-│ ├── hyde_park/
-│ └── st_james_park/
-├── Notebook/
-│ ├── 01_empirical_analysis.ipynb
-│ ├── 02_bayesian_transverse.Rmd
-│ ├── 03_longitudinal_profile.Rmd
-│ ├── 04_kriging_interpolation.Rmd
-│ └── 05_time_series_analysis.ipynb
+│   ├── hyde_park/
+│   └── st_james_park/
+├── notebooks/
+│   ├── 01_empirical_analysis.ipynb
+│   ├── 02_bayesian_transverse.Rmd
+│   ├── 03_longitudinal_profile.Rmd
+│   ├── 04_kriging_interpolation.Rmd
+│   └── 05_time_series_analysis.ipynb
 ├── scripts/
-│ ├── make_variogram.R
-│ └── build_bayesian_glm.R
+│   ├── make_variogram.R
+│   └── build_bayesian_glm.R
 ├── stan_models/
-│ └── gaussian_trough.stan
+│   └── gaussian_trough.stan
 ├── figures/
 ├── .gitignore
 ├── LICENSE
 ├── Required_Packages.txt
 └── README.md
-
+```
 
 
 ---
@@ -139,10 +148,10 @@ S_{jk}(y) \sim \mathcal{N}\!\Bigl(S_{\max,k}\exp[-y^{2}/(2i_{k}^{2})],\ \sigma^{
 
 ## Key References
 
-* Mair & Taylor (1997) – *Bored tunnelling in the urban environment*   
-* UCL Geotechnical Processes Lecture 2 (2018) – *Ground-movement prediction & Class-A modelling*   
-* O’Reilly & New (1982) – Settlement trough width factor \(K\)  
-* Boscardin & Cording (1989) – Building damage vs. tensile strain  
+* Mair, R. J. & Taylor, R. N. 1997. Bored tunnelling in the urban environment: State-of-the-art report and theme lecture. *Proc.14th Int. Conf. Soil Mech. Found. Eng.* Hamburg, Germany, Vol. 4, pp. 2353–2385.  
+* Standing, J. R. Imperial College London Geotechnical Processes Lecture 2 (2018) – *Ground-movement prediction & Tunnelling lecture 2*   
+* O'Reilly, M.P. and New, B.M. (1982). Settlements above tunnels in the United Kingdom -their magnitude and prediction. *Tunnelling '82*. London. pp.173-181
+* Xue, S. (2023). *Transient ground response during and after tunnelling*. PhD thesis, Imperial College London, London, UK.  
 
 ---
 
