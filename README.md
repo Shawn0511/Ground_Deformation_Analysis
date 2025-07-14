@@ -39,22 +39,7 @@ The toolkit is demonstrated on two landmark London projects:
 
 ### 2 Bayesian Modelling
 
-#### 2.1 Hierarchical Non-Linear Model  
-
-```math
-S_{jk}(y) \sim \mathcal N\!\Bigl(
-  S_{\max,k}\,\exp\!\bigl[-y^{2}/\bigl(2\,i_{k}^{2}\bigr)\bigr],
-  \;\sigma^{2}
-\Bigr)
-```
-
-| Parameter | Prior (example) | Notes |
-|-----------|-----------------|-------|
-| $S_{\max,k}$ | $\mathcal N(20\text{ mm},\,5^{2})$ | Tuned per site |
-| $i_{k}$       | $\mathcal N(0.5\,z_{0,k},\,0.1^{2}z_{0,k}^{2})$ | Trough width |
-| $\sigma$      | $\text{HalfNormal}(5)$ | Residual scatter |
-
-#### 2.2 Bayesian GLM Layer
+#### 2.1 Bayesian GLM (Bayesian logistic regression)
 
 ```math
 \log S_{\max} =
@@ -73,6 +58,23 @@ S_{jk}(y) \sim \mathcal N\!\Bigl(
 | Construction | Volume-loss $V_{L}$, face pressure, advance rate |
 | Geotechnical | Soil class, $s_{u}$, $E$, permeability $k$ |
 | Hydro | Ground-water table (GWT), Δ pore pressure |
+
+
+#### 2.2 Hierarchical Non-Linear Model  
+
+```math
+S_{jk}(y) \sim \mathcal N\!\Bigl(
+  S_{\max,k}\,\exp\!\bigl[-y^{2}/\bigl(2\,i_{k}^{2}\bigr)\bigr],
+  \;\sigma^{2}
+\Bigr)
+```
+
+| Parameter | Prior (example) | Notes |
+|-----------|-----------------|-------|
+| $S_{\max,k}$ | $\mathcal N(20\text{ mm},\,5^{2})$ | Tuned per site |
+| $i_{k}$       | $\mathcal N(0.5\,z_{0,k},\,0.1^{2}z_{0,k}^{2})$ | Trough width |
+| $\sigma$      | $\text{HalfNormal}(5)$ | Residual scatter |
+
 
 
 ### 3 Time-Series Analysis
