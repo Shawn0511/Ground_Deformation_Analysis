@@ -34,7 +34,7 @@ The toolkit is demonstrated on two landmark London projects:
 |--------|-------|--------------|
 | **Transverse profile** | Gaussian trough | $S(y)=S_{\max}\,\exp\!\bigl(-y^{2}/(2i^{2})\bigr)$ |
 | **Longitudinal profile** | Gaussian CDF (sigmoid) | $S(x)=S_{\max}\,\Phi\!\bigl((x-x_{0})/w\bigr)$ |
-| **Width parameter** | $i = K\,z_{0}$ with $K\approx0.5$ for London Clay |
+| **Width parameter** | $i = K\,z_{0}$ with $K\approx 0.4 - 0.6$ for London Clay |
 
 
 ### 2 Bayesian Modelling
